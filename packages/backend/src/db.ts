@@ -19,7 +19,8 @@ function load(): HistoryRow[] {
     if (!fs.existsSync(filePath)) return [] as HistoryRow[];
     const s = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(s) as HistoryRow[];
-  } catch (e) {
+  } catch (e: unknown) {
+    console.error('Failed to load history:', e);
     return [] as HistoryRow[];
   }
 }
