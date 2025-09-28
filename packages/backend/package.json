@@ -7,7 +7,7 @@
     "start": "vite --host",
     "dev": "nodemon --watch src --exec \"node -r ts-node/register\" src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "lint": "eslint 'src/**/*.{ts,js}' --fix",
+    "lint": "eslint 'src/**/*.ts' --fix",
     "test": "vitest",
     "test:ci": "vitest --run",
     "typecheck": "tsc -p tsconfig.json"
