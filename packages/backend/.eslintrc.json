@@ -6,20 +6,24 @@
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
-    "plugin:import/errors",
-    "plugin:import/warnings",
-    "prettier",
-    "plugin:import/typescript"
+    "plugin:import/recommended",
+    "plugin:import/typescript",
+    "prettier"
   ],
   "parserOptions": { "ecmaVersion": "latest", "sourceType": "module" },
   "rules": {},
   "settings": {
     "import/resolver": {
-      "node": {
-        "extensions": [".js", ".ts", ".d.ts"]
-      },
       "typescript": {
-        "project": ["./tsconfig.json", "../../tsconfig.base.json"]
+        // 👇 Explicitly include both local + root configs
+        "project": ["./tsconfig.json", "../../tsconfig.json", "../../tsconfig.base.json"]
+      },
+      "node": {
+        "extensions": [".js", ".ts", ".d.ts"],
+        "moduleDirectory": [
+          "node_modules",
+          "../../node_modules" // 👈 allow resolution from root too
+        ]
       }
     }
   }
