@@ -18,8 +18,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Install root dependencies
-        run: npm ci
+      - name: Install root dependencies (including dev deps)
+        run: npm ci --include=dev
       - name: Install packages
         run: |
           npm --workspace @job-assistant/backend ci

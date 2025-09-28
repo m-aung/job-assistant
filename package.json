@@ -9,7 +9,7 @@
     "start:backend": "npm --workspace @job-assistant/backend start",
     "start:frontend": "npm --workspace @job-assistant/frontend start",
     "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
-    "prepare": "husky install",
+    "prepare": "husky install || true",
     "smoke:changed": "node ./scripts/run-smoke-changed.js",
     "lint:test": "npm --workspace @job-assistant/backend run lint && npm --workspace @job-assistant/frontend run lint && npm --workspace @job-assistant/backend run test && npm --workspace @job-assistant/frontend run test"
   },
