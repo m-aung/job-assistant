@@ -91,7 +91,11 @@ function main() {
 
   const packages = findPackages();
   const changedPackages = packages.filter((p) =>
-    changed.some((f) => f.startsWith(p.dir + path.sep) || f === p.dir || f.startsWith(p.dir + '/'))
+    changed.some((f) =>
+      typeof f === 'string'
+        ? f.startsWith(p.dir + path.sep) || f === p.dir || f.startsWith(p.dir + '/')
+        : false
+    )
   );
 
   if (changedPackages.length === 0) {
