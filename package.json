@@ -1,0 +1,30 @@
+{
+  "name": "job-assistant-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "start:backend": "npm --workspace @job-assistant/backend start",
+    "start:frontend": "npm --workspace @job-assistant/frontend start",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "prepare": "husky install",
+    "smoke:changed": "node ./scripts/run-smoke-changed.js",
+    "lint:test": "npm --workspace @job-assistant/backend run lint && npm --workspace @job-assistant/frontend run lint && npm --workspace @job-assistant/backend run test && npm --workspace @job-assistant/frontend run test"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.1"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "**/*.{json,md}": [
+      "prettier --write"
+    ]
+  }
+}
