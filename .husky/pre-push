@@ -1,0 +1,4 @@
+# Run typechecks for packages before push (faster)
+npm --workspace @job-assistant/backend run typecheck
+npm --workspace @job-assistant/frontend run typecheck
+npm run smoke:changed
