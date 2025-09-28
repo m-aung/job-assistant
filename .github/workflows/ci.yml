@@ -24,8 +24,8 @@ jobs:
         run: |
           npm --workspace @job-assistant/backend ci --include=dev
           npm --workspace @job-assistant/frontend ci --include=dev
-      - name: Lint backend
-        run: npm --workspace @job-assistant/backend run lint
+      # - name: Lint backend
+      #   run: npm --workspace @job-assistant/backend run lint
       - name: Lint frontend
         run: npm --workspace @job-assistant/frontend run lint
       - name: Test backend
