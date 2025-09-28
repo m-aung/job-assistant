@@ -20,10 +20,10 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Install root dependencies (including dev deps)
         run: npm ci --include=dev
-      - name: Install packages
+      - name: Install packages (including dev deps)
         run: |
-          npm --workspace @job-assistant/backend ci
-          npm --workspace @job-assistant/frontend ci
+          npm --workspace @job-assistant/backend ci --include=dev
+          npm --workspace @job-assistant/frontend ci --include=dev
       - name: Lint backend
         run: npm --workspace @job-assistant/backend run lint
       - name: Lint frontend
