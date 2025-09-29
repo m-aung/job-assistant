@@ -19,12 +19,15 @@ export default function Editor({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resume, jobDescription }),
       });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      if (!res.ok) {
+        const msg = await res.json();
+        throw new Error(msg.error || 'Error: Unknown error');
+      }
       const data = await res.json();
       onResult(data.coverLetter || data.rewrittenResume || JSON.stringify(data, null, 2));
       onDone?.();
     } catch (err) {
-      onResult('Error: ' + String(err));
+      onResult(String(err));
     } finally {
       setLoading(false);
     }

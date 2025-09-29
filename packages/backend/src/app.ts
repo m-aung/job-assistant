@@ -3,6 +3,7 @@ import cors from 'cors';
 import { config } from 'dotenv';
 import OpenAI from 'openai';
 import { insertHistory, listHistory, getHistory, deleteHistory, updateHistory } from './db';
+import { validateJobDescription } from './middlewares/validators';
 
 config();
 const app = express();
@@ -18,7 +19,7 @@ if (openAiApiKey) {
 }
 
 // Generate Cover Letter
-app.post('/api/cover-letter', async (req, res) => {
+app.post('/api/cover-letter', validateJobDescription, async (req, res) => {
   try {
     const { jobDescription, resume } = req.body;
     const jobDescriptionStr = (jobDescription ?? '') as string;
@@ -50,7 +51,7 @@ app.post('/api/cover-letter', async (req, res) => {
 });
 
 // Rewrite Resume
-app.post('/api/resume', async (req, res) => {
+app.post('/api/resume', validateJobDescription, async (req, res) => {
   try {
     const { jobDescription, resume } = req.body;
     const jobDescriptionStr = (jobDescription ?? '') as string;
@@ -118,10 +119,5 @@ app.delete('/api/history/:id', (req, res) => {
   if (!ok) return res.status(404).json({ error: 'Not found' });
   res.json({ ok: true });
 });
-
-// // Example route
-// app.get("/", (req, res) => {
-//   res.json({ message: "Hello World 🚀" });
-// });
 
 export default app;
