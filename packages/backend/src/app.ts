@@ -2,6 +2,7 @@ import express, { json } from 'express';
 import cors from 'cors';
 import { config } from 'dotenv';
 import OpenAI from 'openai';
+import { insertHistory, listHistory, getHistory, deleteHistory, updateHistory } from './db';
 
 config();
 const app = express();
@@ -15,8 +16,6 @@ if (openAiApiKey) {
 } else {
   console.warn('OPENAI_API_KEY is not set — AI routes will return 500 until it is configured.');
 }
-
-import { insertHistory, listHistory, getHistory, deleteHistory, updateHistory } from './db.js';
 
 // Generate Cover Letter
 app.post('/api/cover-letter', async (req, res) => {
@@ -82,9 +81,6 @@ app.post('/api/resume', async (req, res) => {
   }
 });
 
-const port = process.env.PORT ? Number(process.env.PORT) : 5000;
-app.listen(port, () => console.log(`Server running at http://localhost:${port}`));
-
 // History endpoints
 app.get('/api/history', (req, res) => {
   res.json(listHistory(50));
@@ -122,3 +118,10 @@ app.delete('/api/history/:id', (req, res) => {
   if (!ok) return res.status(404).json({ error: 'Not found' });
   res.json({ ok: true });
 });
+
+// // Example route
+// app.get("/", (req, res) => {
+//   res.json({ message: "Hello World 🚀" });
+// });
+
+export default app;
