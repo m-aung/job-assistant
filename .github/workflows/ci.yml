@@ -19,16 +19,16 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install root dependencies (including dev deps)
-        run: pnpm install --frozen-lockfile
+        run: npm install --frozen-lockfile
       - name: Lint backend
-        run: pnpm --workspace @job-assistant/backend run lint
+        run: npm --workspace @job-assistant/backend run lint
       - name: Lint frontend
-        run: pnpm --workspace @job-assistant/frontend run lint
+        run: npm --workspace @job-assistant/frontend run lint
       - name: Test backend
-        run: pnpm --workspace @job-assistant/backend run test
+        run: npm --workspace @job-assistant/backend run test
       - name: Test frontend
-        run: pnpm --workspace @job-assistant/frontend run test
+        run: npm --workspace @job-assistant/frontend run test
       - name: Build backend
-        run: pnpm --workspace @job-assistant/backend run build
+        run: npm --workspace @job-assistant/backend run build
       - name: Build frontend
-        run: pnpm --workspace @job-assistant/frontend run build
+        run: npm --workspace @job-assistant/frontend run build
