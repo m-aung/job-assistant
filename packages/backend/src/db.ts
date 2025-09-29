@@ -1,18 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import { HistoryRow } from './types';
 
 const dataDir = path.join(process.cwd(), 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 const filePath = path.join(dataDir, 'history.json');
-
-export type HistoryRow = {
-  id: number;
-  type: string;
-  jobDescription: string;
-  resume: string;
-  output: string;
-  createdAt: string;
-};
 
 function load(): HistoryRow[] {
   try {
