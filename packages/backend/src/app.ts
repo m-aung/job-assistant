@@ -1,9 +1,10 @@
-import express, { json } from 'express';
+import express, { json, Request, Response } from 'express';
 import cors from 'cors';
 import { config } from 'dotenv';
 import OpenAI from 'openai';
 import { insertHistory, listHistory, getHistory, deleteHistory, updateHistory } from './db';
 import { validateJobDescription } from './middlewares/validators';
+import { VercelRequest, VercelResponse } from '@vercel/node';
 
 config();
 const app = express();
@@ -19,7 +20,7 @@ if (openAiApiKey) {
 }
 
 // Generate Cover Letter
-app.post('/api/cover-letter', validateJobDescription, async (req, res) => {
+app.post('/api/cover-letter', validateJobDescription, async (req: Request, res: Response) => {
   try {
     const { jobDescription, resume } = req.body;
     const jobDescriptionStr = (jobDescription ?? '') as string;
@@ -51,7 +52,7 @@ app.post('/api/cover-letter', validateJobDescription, async (req, res) => {
 });
 
 // Rewrite Resume
-app.post('/api/resume', validateJobDescription, async (req, res) => {
+app.post('/api/resume', validateJobDescription, async (req: Request, res: Response) => {
   try {
     const { jobDescription, resume } = req.body;
     const jobDescriptionStr = (jobDescription ?? '') as string;
@@ -83,18 +84,18 @@ app.post('/api/resume', validateJobDescription, async (req, res) => {
 });
 
 // History endpoints
-app.get('/api/history', (req, res) => {
+app.get('/api/history', (req: Request, res: Response) => {
   res.json(listHistory(50));
 });
 
-app.get('/api/history/:id', (req, res) => {
+app.get('/api/history/:id', (req: Request, res: Response) => {
   const id = Number(req.params.id);
   const e = getHistory(id);
   if (!e) return res.status(404).json({ error: 'Not found' });
   res.json(e);
 });
 
-app.post('/api/history', (req, res) => {
+app.post('/api/history', (req: Request, res: Response) => {
   const { type, jobDescription, resume, output } = req.body;
   if (!type || !output) return res.status(400).json({ error: 'Missing fields' });
   const e = insertHistory({
@@ -106,7 +107,7 @@ app.post('/api/history', (req, res) => {
   res.json(e);
 });
 
-app.put('/api/history/:id', (req, res) => {
+app.put('/api/history/:id', (req: Request, res: Response) => {
   const id = Number(req.params.id);
   const updated = updateHistory(id, req.body);
   if (!updated) return res.status(404).json({ error: 'Not found or no changes' });
@@ -120,4 +121,9 @@ app.delete('/api/history/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-export default app;
+// 👇 Export as a handler for Vercel
+export default (req: VercelRequest, res: VercelResponse): ReturnType<typeof app> => {
+  return app(req, res);
+};
+
+export { app };
