@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { json } from 'express';
 import cors from 'cors';
 import { config } from 'dotenv';
 import OpenAI from 'openai';
@@ -6,11 +6,17 @@ import OpenAI from 'openai';
 config();
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(json());
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openAiApiKey = process.env.OPENAI_API_KEY;
+let client: OpenAI | null = null;
+if (openAiApiKey) {
+  client = new OpenAI({ apiKey: openAiApiKey });
+} else {
+  console.warn('OPENAI_API_KEY is not set — AI routes will return 500 until it is configured.');
+}
 
-import { insertHistory, listHistory, getHistory, deleteHistory, updateHistory } from './db';
+import { insertHistory, listHistory, getHistory, deleteHistory, updateHistory } from './db.js';
 
 // Generate Cover Letter
 app.post('/api/cover-letter', async (req, res) => {
@@ -19,6 +25,7 @@ app.post('/api/cover-letter', async (req, res) => {
     const jobDescriptionStr = (jobDescription ?? '') as string;
     const resumeStr = (resume ?? '') as string;
 
+    if (!client) return res.status(500).json({ error: 'OpenAI API key not configured' });
     const completion = await client.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -50,6 +57,7 @@ app.post('/api/resume', async (req, res) => {
     const jobDescriptionStr = (jobDescription ?? '') as string;
     const resumeStr = (resume ?? '') as string;
 
+    if (!client) return res.status(500).json({ error: 'OpenAI API key not configured' });
     const completion = await client.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -74,7 +82,7 @@ app.post('/api/resume', async (req, res) => {
   }
 });
 
-const port = process.env.PORT ? Number(process.env.PORT) : 3001;
+const port = process.env.PORT ? Number(process.env.PORT) : 5000;
 app.listen(port, () => console.log(`Server running at http://localhost:${port}`));
 
 // History endpoints

@@ -4,8 +4,8 @@
   "private": true,
   "main": "src/index.js",
   "scripts": {
-    "start": "vite --host",
-    "dev": "nodemon --watch src --exec \"node -r ts-node/register\" src/index.ts",
+    "start": "npm run build && node dist/index.js",
+    "dev": "nodemon --watch src --exec \"npm run build && node dist/index.js\"",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint 'src/**/*.ts' --fix",
     "test": "vitest",
