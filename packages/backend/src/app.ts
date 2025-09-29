@@ -125,5 +125,3 @@ app.delete('/api/history/:id', (req, res) => {
 export default (req: VercelRequest, res: VercelResponse): ReturnType<typeof app> => {
   return app(req, res);
 };
-
-export { app };
