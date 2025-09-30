@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../api';
 
 export default function Editor({
   onResult,
@@ -14,7 +15,7 @@ export default function Editor({
   async function callApi(path: string) {
     setLoading(true);
     try {
-      const res = await fetch(path, {
+      const res = await apiFetch(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resume, jobDescription }),

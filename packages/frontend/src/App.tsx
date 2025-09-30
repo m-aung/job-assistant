@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Editor from './components/Editor';
+import { apiFetch } from './api';
 
 export default function App() {
   const [result, setResult] = useState('');
@@ -8,7 +9,7 @@ export default function App() {
 
   async function loadHistory() {
     try {
-      const res = await fetch('/api/history');
+      const res = await apiFetch('/api/history');
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       setHistory(data);
@@ -64,7 +65,7 @@ export default function App() {
                   #{h.id} [{h.type}] {new Date(h.createdAt).toLocaleString()}{' '}
                   <button
                     onClick={async () => {
-                      const res = await fetch(`/api/history/${h.id}`);
+                      const res = await apiFetch(`/api/history/${h.id}`);
                       const d = await res.json();
                       setResult(d.output || '');
                     }}
