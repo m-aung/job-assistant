@@ -2,14 +2,27 @@ import express, { json, Request, Response } from 'express';
 import cors from 'cors';
 import { config } from 'dotenv';
 import OpenAI from 'openai';
-import { insertHistory, listHistory, getHistory, deleteHistory, updateHistory } from './db';
+import { localDb, supabase, useLocalDb } from './database/db';
 import { validateJobDescription } from './middlewares/validators';
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { HistoryRow, DbHistoryRow, DbHistoryUpdate } from './types';
 
 config();
 const app = express();
 app.use(cors());
 app.use(json());
+
+// Helper: convert DB snake_case row to camelCase HistoryRow
+function dbRowToHistory(r: DbHistoryRow): HistoryRow {
+  return {
+    id: r.id,
+    type: r.type,
+    jobDescription: r.job_description,
+    resume: r.resume,
+    output: r.output,
+    createdAt: r.created_at,
+  };
+}
 
 const openAiApiKey = process.env.OPENAI_API_KEY;
 let client: OpenAI | null = null;
@@ -38,13 +51,39 @@ app.post('/api/cover-letter', validateJobDescription, async (req: Request, res: 
       ],
     });
     const output = (completion.choices[0].message.content ?? '') as string;
-    const saved = insertHistory({
-      type: 'cover',
-      jobDescription: jobDescriptionStr,
-      resume: resumeStr,
-      output,
+    if (useLocalDb) {
+      const saved = localDb?.insertHistory({
+        type: 'cover',
+        jobDescription: jobDescriptionStr,
+        resume: resumeStr,
+        output,
+      });
+      return res.json({ coverLetter: output, historyId: saved?.id });
+    }
+
+    const { data, error } = await supabase
+      .from('history')
+      .insert([
+        {
+          // insert expects an array — use snake_case column names for DB
+          type: 'cover',
+          job_description: jobDescriptionStr,
+          resume: resumeStr,
+          output,
+        },
+      ])
+      .select('id, type, job_description, resume, output, created_at')
+      .single();
+    if (error) {
+      console.error('Supabase insert error', error);
+      return res.status(500).json({ error: 'Failed to save history' });
+    }
+    // convert returned row to camelCase for the API
+    return res.json({
+      coverLetter: output,
+      historyId: data?.id,
+      history: data ? dbRowToHistory(data as DbHistoryRow) : undefined,
     });
-    res.json({ coverLetter: output, historyId: saved.id });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error generating cover letter' });
@@ -70,13 +109,38 @@ app.post('/api/resume', validateJobDescription, async (req: Request, res: Respon
       ],
     });
     const output = (completion.choices[0].message.content ?? '') as string;
-    const saved = insertHistory({
-      type: 'resume',
-      jobDescription: jobDescriptionStr,
-      resume: resumeStr,
-      output,
+    if (useLocalDb) {
+      const saved = localDb?.insertHistory({
+        type: 'resume',
+        jobDescription: jobDescriptionStr,
+        resume: resumeStr,
+        output,
+      });
+      return res.json({ rewrittenResume: output, historyId: saved?.id });
+    }
+
+    const { data, error } = await supabase
+      .from('history')
+      .insert([
+        {
+          // insert expects an array — use snake_case column names for DB
+          type: 'resume',
+          job_description: jobDescriptionStr,
+          resume: resumeStr,
+          output,
+        },
+      ])
+      .select('id, type, job_description, resume, output, created_at')
+      .single();
+    if (error) {
+      console.error('Supabase insert error', error);
+      return res.status(500).json({ error: 'Failed to save history' });
+    }
+    return res.json({
+      rewrittenResume: output,
+      historyId: data?.id,
+      history: data ? dbRowToHistory(data as DbHistoryRow) : undefined,
     });
-    res.json({ rewrittenResume: output, historyId: saved.id });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error rewriting resume' });
@@ -84,44 +148,118 @@ app.post('/api/resume', validateJobDescription, async (req: Request, res: Respon
 });
 
 // History endpoints
-app.get('/api/history', (req: Request, res: Response) => {
-  res.json(listHistory(50));
+app.get('/api/history', async (req: Request, res: Response) => {
+  if (useLocalDb) return res.json(localDb?.listHistory(50) ?? []);
+  const { data, error } = await supabase
+    .from('history')
+    .select('id, type, job_description, resume, output, created_at')
+    .limit(50)
+    .order('id', { ascending: false });
+  if (error) {
+    console.error('Supabase select error', error);
+    return res.status(500).json({ error: 'Failed to fetch history' });
+  }
+  // convert rows to camelCase
+  const rows = (data ?? []).map((r: DbHistoryRow) => dbRowToHistory(r));
+  return res.json(rows);
 });
 
-app.get('/api/history/:id', (req: Request, res: Response) => {
+app.get('/api/history/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id);
-  const e = getHistory(id);
-  if (!e) return res.status(404).json({ error: 'Not found' });
-  res.json(e);
+  if (useLocalDb) {
+    const e = localDb?.getHistory(id);
+    if (!e) return res.status(404).json({ error: 'Not found' });
+    return res.json(e);
+  }
+  const { data, error } = await supabase
+    .from('history')
+    .select('id, type, job_description, resume, output, created_at')
+    .eq('id', id)
+    .single();
+  if (error || !data) return res.status(404).json({ error: 'Not found' });
+  return res.json({
+    ...dbRowToHistory(data as DbHistoryRow),
+  });
 });
 
-app.post('/api/history', (req: Request, res: Response) => {
+app.post('/api/history', async (req: Request, res: Response) => {
   const { type, jobDescription, resume, output } = req.body;
   if (!type || !output) return res.status(400).json({ error: 'Missing fields' });
-  const e = insertHistory({
-    type,
-    jobDescription: jobDescription || '',
-    resume: resume || '',
-    output,
+  if (useLocalDb) {
+    const e = localDb?.insertHistory({
+      type,
+      jobDescription: jobDescription || '',
+      resume: resume || '',
+      output,
+    });
+    return res.json(e);
+  }
+  const { data, error } = await supabase
+    .from('history')
+    .insert([
+      {
+        type,
+        job_description: jobDescription || '',
+        resume: resume || '',
+        output,
+      },
+    ])
+    .select('id, type, job_description, resume, output, created_at')
+    .single();
+  if (error) {
+    console.error('Supabase insert error', error);
+    return res.status(500).json({ error: 'Failed to save history' });
+  }
+  return res.json({
+    ...dbRowToHistory(data as DbHistoryRow),
   });
-  res.json(e);
 });
 
-app.put('/api/history/:id', (req: Request, res: Response) => {
+app.put('/api/history/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id);
-  const updated = updateHistory(id, req.body);
-  if (!updated) return res.status(404).json({ error: 'Not found or no changes' });
-  res.json(updated);
+  if (useLocalDb) {
+    const updated = localDb?.updateHistory(
+      id,
+      req.body as Partial<Omit<HistoryRow, 'id' | 'createdAt'>>
+    );
+    if (!updated) return res.status(404).json({ error: 'Not found or no changes' });
+    return res.json(updated);
+  }
+  // For updates, map camelCase keys in req.body to snake_case for DB
+  const body = req.body as Partial<Omit<HistoryRow, 'id' | 'createdAt'>>;
+  const dbUpdate: DbHistoryUpdate = {};
+  if (body.type !== undefined) dbUpdate.type = body.type;
+  if (body.jobDescription !== undefined) dbUpdate.job_description = body.jobDescription;
+  if (body.resume !== undefined) dbUpdate.resume = body.resume;
+  if (body.output !== undefined) dbUpdate.output = body.output;
+
+  const { data, error } = await supabase
+    .from('history')
+    .update(dbUpdate)
+    .eq('id', id)
+    .select('id, type, job_description, resume, output, created_at')
+    .single();
+  if (error || !data) return res.status(404).json({ error: 'Not found or no changes' });
+  return res.json({
+    ...dbRowToHistory(data as DbHistoryRow),
+  });
 });
 
-app.delete('/api/history/:id', (req, res) => {
+app.delete('/api/history/:id', async (req, res) => {
   const id = Number(req.params.id);
-  const ok = deleteHistory(id);
-  if (!ok) return res.status(404).json({ error: 'Not found' });
-  res.json({ ok: true });
+  if (useLocalDb) {
+    const ok = localDb?.deleteHistory(id);
+    if (!ok) return res.status(404).json({ error: 'Not found' });
+    return res.json({ ok: true });
+  }
+  const { error } = await supabase.from('history').delete().eq('id', id).select().single();
+  if (error) return res.status(404).json({ error: 'Not found' });
+  return res.json({ ok: true });
 });
 
 // 👇 Export as a handler for Vercel
 export default (req: VercelRequest, res: VercelResponse): ReturnType<typeof app> => {
   return app(req, res);
 };
+
+export { app };

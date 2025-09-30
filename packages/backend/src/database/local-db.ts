@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { HistoryRow } from './types';
+import { HistoryRow } from '../types';
 
 const dataDir = path.join(process.cwd(), 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
@@ -57,3 +57,26 @@ export function updateHistory(id: number, fields: Partial<Omit<HistoryRow, 'id' 
   save(rows);
   return rows[idx];
 }
+
+class LocalDB {
+  insertHistory(entry: Omit<HistoryRow, 'id' | 'createdAt'>) {
+    return insertHistory(entry);
+  }
+
+  listHistory(limit = 50) {
+    return listHistory(limit);
+  }
+
+  getHistory(id: number) {
+    return getHistory(id);
+  }
+
+  deleteHistory(id: number) {
+    return deleteHistory(id);
+  }
+
+  updateHistory(id: number, fields: Partial<Omit<HistoryRow, 'id' | 'createdAt'>>) {
+    return updateHistory(id, fields);
+  }
+}
+export { LocalDB };
