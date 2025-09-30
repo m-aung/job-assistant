@@ -5,7 +5,7 @@ import {
   FormControl,
   FormLabel,
   Textarea,
-  HStack,
+  Stack,
   Button,
   useToast,
 } from '@chakra-ui/react';
@@ -65,14 +65,24 @@ export default function Editor({
         <FormLabel>Resume</FormLabel>
         <Textarea value={resume} onChange={(e) => setResume(e.target.value)} rows={6} />
       </FormControl>
-      <HStack>
-        <Button variant="neon" isLoading={loading} onClick={() => callApi('/api/cover-letter')}>
+      <Stack direction={{ base: 'column', sm: 'row' }} spacing={3}>
+        <Button
+          variant="neon"
+          isLoading={loading}
+          onClick={() => callApi('/api/cover-letter')}
+          w={{ base: '100%', sm: 'auto' }}
+        >
           Cover Letter
         </Button>
-        <Button variant="neon" isLoading={loading} onClick={() => callApi('/api/resume')}>
+        <Button
+          variant="neon"
+          isLoading={loading}
+          onClick={() => callApi('/api/resume')}
+          w={{ base: '100%', sm: 'auto' }}
+        >
           Rewrite Resume
         </Button>
-      </HStack>
+      </Stack>
     </VStack>
   );
 }
