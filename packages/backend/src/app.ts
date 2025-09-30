@@ -2,7 +2,7 @@ import express, { json, Request, Response } from 'express';
 import cors from 'cors';
 import { config } from 'dotenv';
 import OpenAI from 'openai';
-import { localDb, supabase, useLocalDb } from './database/db';
+import { supabase } from './database/db';
 import { validateJobDescription } from './middlewares/validators';
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { HistoryRow, DbHistoryRow, DbHistoryUpdate } from './types';
@@ -51,16 +51,6 @@ app.post('/api/cover-letter', validateJobDescription, async (req: Request, res: 
       ],
     });
     const output = (completion.choices[0].message.content ?? '') as string;
-    if (useLocalDb) {
-      const saved = localDb?.insertHistory({
-        type: 'cover',
-        jobDescription: jobDescriptionStr,
-        resume: resumeStr,
-        output,
-      });
-      return res.json({ coverLetter: output, historyId: saved?.id });
-    }
-
     const { data, error } = await supabase
       .from('history')
       .insert([
@@ -109,16 +99,6 @@ app.post('/api/resume', validateJobDescription, async (req: Request, res: Respon
       ],
     });
     const output = (completion.choices[0].message.content ?? '') as string;
-    if (useLocalDb) {
-      const saved = localDb?.insertHistory({
-        type: 'resume',
-        jobDescription: jobDescriptionStr,
-        resume: resumeStr,
-        output,
-      });
-      return res.json({ rewrittenResume: output, historyId: saved?.id });
-    }
-
     const { data, error } = await supabase
       .from('history')
       .insert([
@@ -149,7 +129,6 @@ app.post('/api/resume', validateJobDescription, async (req: Request, res: Respon
 
 // History endpoints
 app.get('/api/history', async (req: Request, res: Response) => {
-  if (useLocalDb) return res.json(localDb?.listHistory(50) ?? []);
   const { data, error } = await supabase
     .from('history')
     .select('id, type, job_description, resume, output, created_at')
@@ -166,11 +145,6 @@ app.get('/api/history', async (req: Request, res: Response) => {
 
 app.get('/api/history/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id);
-  if (useLocalDb) {
-    const e = localDb?.getHistory(id);
-    if (!e) return res.status(404).json({ error: 'Not found' });
-    return res.json(e);
-  }
   const { data, error } = await supabase
     .from('history')
     .select('id, type, job_description, resume, output, created_at')
@@ -185,15 +159,6 @@ app.get('/api/history/:id', async (req: Request, res: Response) => {
 app.post('/api/history', async (req: Request, res: Response) => {
   const { type, jobDescription, resume, output } = req.body;
   if (!type || !output) return res.status(400).json({ error: 'Missing fields' });
-  if (useLocalDb) {
-    const e = localDb?.insertHistory({
-      type,
-      jobDescription: jobDescription || '',
-      resume: resume || '',
-      output,
-    });
-    return res.json(e);
-  }
   const { data, error } = await supabase
     .from('history')
     .insert([
@@ -217,14 +182,6 @@ app.post('/api/history', async (req: Request, res: Response) => {
 
 app.put('/api/history/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id);
-  if (useLocalDb) {
-    const updated = localDb?.updateHistory(
-      id,
-      req.body as Partial<Omit<HistoryRow, 'id' | 'createdAt'>>
-    );
-    if (!updated) return res.status(404).json({ error: 'Not found or no changes' });
-    return res.json(updated);
-  }
   // For updates, map camelCase keys in req.body to snake_case for DB
   const body = req.body as Partial<Omit<HistoryRow, 'id' | 'createdAt'>>;
   const dbUpdate: DbHistoryUpdate = {};
@@ -247,11 +204,6 @@ app.put('/api/history/:id', async (req: Request, res: Response) => {
 
 app.delete('/api/history/:id', async (req, res) => {
   const id = Number(req.params.id);
-  if (useLocalDb) {
-    const ok = localDb?.deleteHistory(id);
-    if (!ok) return res.status(404).json({ error: 'Not found' });
-    return res.json({ ok: true });
-  }
   const { error } = await supabase.from('history').delete().eq('id', id).select().single();
   if (error) return res.status(404).json({ error: 'Not found' });
   return res.json({ ok: true });
