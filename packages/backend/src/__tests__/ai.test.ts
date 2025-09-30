@@ -36,6 +36,9 @@ vi.mock('openai', () => {
   };
 });
 
+// Use shared Supabase mock (CommonJS) to avoid duplicating the implementation
+vi.mock('../database/db', () => require('./__mocks__/db.cjs'));
+
 import { app } from '../app';
 
 const dataDir = path.join(process.cwd(), 'data');
